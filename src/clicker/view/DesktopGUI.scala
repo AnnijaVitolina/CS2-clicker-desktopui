@@ -19,34 +19,39 @@ class HandleMessagesFromServer() extends Emitter.Listener {
     // Use runLater when interacting with the GUI
     Platform.runLater(() => {
       // This method is called whenever a new game state is received from the server
-      val jsonGameState = objects.apply(0).toString
+      var jsonGameState = objects.apply(0).toString
       println(jsonGameState)
 
       // TODO: Display the game state on your GUI
       // You must display: current gold, and the name, number owned, and cost for each type of equipment
 
       // You can access any variables/methods in the DesktopGUI object from this class
-//      DesktopGUI.goldTextField.text = goldFromGameState
+      // DesktopGUI.goldTextField.text = goldFromGameState
 
       var parsed: JsValue = Json.parse(jsonGameState)
+      println(parsed)
 
-      var gold: Int = (parsed \ "gold").as[Int]
+      var gold: Double = (parsed \ "gold").as[Double]
       DesktopGUI.currentGold.text = gold.toString
 
-      var shovelID: String = (parsed \ "equipment" \ "shovel" \ "id").as[String]
-      var shovelNumberOwned: Int = (parsed \ "equipment" \ "shovel" \ "numberOwned").as[Int]
-      var shovelCost: Int = (parsed \ "equipment" \ "shovel" \ "cost").as[Int]
-      DesktopGUI.equipment1.text = shovelID + " " + shovelNumberOwned.toString + " " + shovelCost.toString
+//      var shovelID: String = (parsed \ "equipment" \ "shovel" \ "id").as[String]
+      var shovelNumberOwned: Int = (((parsed \ "equipment") \ "shovel") \ "numberOwned").as[Int]
+//      var shovelCost: Double = (((parsed \ "equipment") \ "shovel") \ "cost").as[Double]
+//      DesktopGUI.equipment1.text = shovelID
+      DesktopGUI.currentShovel.text = shovelNumberOwned.toString
 
-      var excavatorID: String = (parsed \ "equipment" \ "excavator" \ "id").as[String]
-      var excavatorNumberOwned: Int = (parsed \ "equipment" \ "excavator" \ "numberOwned").as[Int]
-      var excavatorCost: Int = (parsed \ "equipment" \ "excavator" \ "cost").as[Int]
-      DesktopGUI.equipment2.text = excavatorID + " " + excavatorNumberOwned.toString + " " + excavatorCost.toString
+//      var excavatorID: String = (parsed \ "equipment" \ "excavator" \ "id").as[String]
+      var excavatorNumberOwned: Int = (((parsed \ "equipment") \ "excavator") \ "numberOwned").as[Int]
+//      var excavatorCost: Double = (((parsed \ "equipment") \ "excavator") \ "cost").as[Double]
+//      DesktopGUI.equipment2.text = excavatorID
+      DesktopGUI.currentExcavator.text = excavatorNumberOwned.toString
 
-      var mineID: String = (parsed \ "equipment" \ "mine" \ "id").as[String]
-      var mineNumberOwned: Int = (parsed \ "equipment" \ "mine" \ "numberOwned").as[Int]
-      var mineCost: Int = (parsed \ "equipment" \ "mine" \ "cost").as[Int]
-      DesktopGUI.equipment3.text = mineID + " " + mineNumberOwned.toString + " " + mineCost.toString
+//      var mineID: String = (parsed \ "equipment" \ "mine" \ "id").as[String]
+      var mineNumberOwned: Int = (((parsed \ "equipment") \ "mine") \ "numberOwned").as[Int]
+//      var mineCost: Double = (((parsed \ "equipment") \ "mine") \ "cost").as[Double]
+//      DesktopGUI.equipment3.text = mineID
+      DesktopGUI.currentMine.text = mineNumberOwned.toString
+
     })
 
   }
@@ -60,7 +65,7 @@ object DesktopGUI extends JFXApp {
   socket.connect()
 
   // Change "test" to any username you'd like to start a new game
-  socket.emit("register", "Tests")
+  socket.emit("register", "new1")
 
   // Call this method whenever the user clicks your gold button
   def clickGold(): Unit = {
@@ -83,41 +88,56 @@ object DesktopGUI extends JFXApp {
     style = "-fx-font: 18 ariel;"
   }
 
-  val goldButton: Button = new Button {
+  var currentShovel: TextField = new TextField {
+    editable = false
+    style = "-fx-font: 18 ariel;"
+  }
+
+  var currentExcavator: TextField = new TextField {
+    editable = false
+    style = "-fx-font: 18 ariel;"
+  }
+
+  var currentMine: TextField = new TextField {
+    editable = false
+    style = "-fx-font: 18 ariel;"
+  }
+
+  var goldButton: Button = new Button {
     minWidth = 100
     minHeight = 100
     style = "-fx-font: 28 ariel;"
     text = "GOLD"
-    onAction = new ButtonListener()
+    onAction = new ButtonListener
   }
 
-  val equipment1: Button = new Button {
+  var equipment1: Button = new Button {
     minWidth = 100
     minHeight = 100
     style = "-fx-font: 28 ariel;"
     text = "shovel"
-    onAction = new BoughtShovel()
+    onAction = new BoughtEquipment("shovel")
   }
 
-  val equipment2: Button = new Button {
+  var equipment2: Button = new Button {
     minWidth = 100
     minHeight = 100
     style = "-fx-font: 28 ariel;"
     text = "excavator"
-    onAction = new BoughtExcavator()
+    onAction = new BoughtEquipment("excavator")
 
   }
 
-  val equipment3: Button = new Button {
+  var equipment3: Button = new Button {
     minWidth = 100
     minHeight = 100
     style = "-fx-font: 28 ariel;"
     text = "mine"
-    onAction = new BoughtMine()
+    onAction = new BoughtEquipment("mine")
   }
 
-  val verticalBox = new VBox(){
-    children = List(currentGold, goldButton, equipment1, equipment2, equipment3)
+  var verticalBox = new VBox() {
+    children = List(currentGold, currentShovel, currentExcavator, currentMine, goldButton, equipment1, equipment2, equipment3)
   }
 
   this.stage = new PrimaryStage {
@@ -126,32 +146,33 @@ object DesktopGUI extends JFXApp {
       content = List(verticalBox)
     }
   }
-}
 
-class ButtonListener() extends EventHandler[ActionEvent] {
-  override def handle(event: ActionEvent): Unit = {
-    DesktopGUI.clickGold()
-    println("gold clicked")
+  class ButtonListener() extends EventHandler[ActionEvent] {
+    override def handle(event: ActionEvent): Unit = {
+      clickGold()
+      println("gold clicked")
+    }
+  }
+
+  class BoughtEquipment(equipment: String) extends EventHandler[ActionEvent] {
+    override def handle(event: ActionEvent): Unit = {
+      buyEquipment(equipment)
+      println(equipment + " bought")
+    }
   }
 }
 
-class BoughtShovel() extends EventHandler[ActionEvent] {
-  override def handle(event: ActionEvent): Unit = {
-    DesktopGUI.buyEquipment(DesktopGUI.equipment1.text.getValue)
-    println("shovel bought")
-  }
-}
 
-class BoughtExcavator() extends EventHandler[ActionEvent] {
-  override def handle(event: ActionEvent): Unit = {
-    DesktopGUI.buyEquipment(DesktopGUI.equipment2.text.getValue)
-    println("excavator bought")
-  }
-}
-
-class BoughtMine() extends EventHandler[ActionEvent] {
-  override def handle(event: ActionEvent): Unit = {
-    DesktopGUI.buyEquipment(DesktopGUI.equipment3.text.getValue)
-    println("mine bought")
-  }
-}
+//class BoughtExcavator() extends EventHandler[ActionEvent] {
+//  override def handle(event: ActionEvent): Unit = {
+//    DesktopGUI.buyEquipment(DesktopGUI.equipment2.text.getValue)
+//    println("excavator bought")
+//  }
+//}
+//
+//class BoughtMine() extends EventHandler[ActionEvent] {
+//  override def handle(event: ActionEvent): Unit = {
+//    DesktopGUI.buyEquipment(DesktopGUI.equipment3.text.getValue)
+//    println("mine bought")
+//  }
+//}
